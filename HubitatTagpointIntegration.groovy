@@ -1,5 +1,6 @@
 import groovy.transform.Field
 
+@Field static final asyncLock = new Object[0]
 @Field deleteRulePrefix = "deleteRule"
 
 @Field gtcomp = "greater than"
@@ -53,17 +54,18 @@ preferences {
               }             
               if (parameterType) {
                   input "device", getCapability(parameterType), title: "Device", multiple: false, required: true, submitOnChange: true    
-              }
+              }                                       
+              
               if (device) {
                   input "comparison", "enum", title: "Comparison", options: [gtcomp, ltcomp], submitOnChange: true
               }
               if (comparison) {
                     input "value", "decimal", title: "Value", required: true, submitOnChange: true
               }            
-              if (value) {
+              if (value != null) {
                     input "recheck", "number", title: "Recheck", required: true, submitOnChange: true
               }            
-              if (recheck) {
+              if (recheck  != null) {
                   input "url", "text", title: "URL", required: true, submitOnChange: true
               }              
               if (url) {
@@ -79,22 +81,23 @@ def createSubscriptionKey(device, parameterType) {
 }
 
 def recheckHandler(subscriptionKey, ruleId) {
-    log.debug "rule is enabled"
     def rule = findRule(subscriptionKey, ruleId)
     if (rule) {
         rule.enabled = true
     }
 }
 
+def handlePostResponse(resp, payload) {
+    log.debug "tagpoint respStatus: ${resp?.getStatus()}"
+}
+
+@groovy.transform.Synchronized("asyncLock")
 def eventHandler(event) {   
-    log.debug "eventHandler"
     def subscriptionKey = createSubscriptionKey(event.getDevice(), event.name)
     def subscription = state.subscriptions[subscriptionKey]
     if (subscription) {     
-        log.debug "subscription"
         subscription.each { ruleId, rule ->
             if (rule.enabled) {
-                log.debug "rule"
                 if ((rule.comparison == gtcomp && event.getDoubleValue() > rule.value) || (rule.comparison == ltcomp && event.getDoubleValue() < rule.value)) {
                     log.debug "post"                    
                     Map postParams = [
@@ -103,17 +106,12 @@ def eventHandler(event) {
                         contentType: 'application/json',
                         headers: ['Auth': authHeader],
                         body : new groovy.json.JsonOutput().toJson( [ value: event.value ])
-                    ]
-   
-                    /*
-                    httpPost(postParams) { resp ->
-                        log.debug "tagpoint respStatus: ${resp?.getStatus()}"
-                    } */                  
+                    ]   
+                   
+                    asynchttpPost(handlePostResponse, postParams)                    
                     
-                    log.debug "recheck - ${rule.recheck}"
-                    if (rule.recheck >= 0) {
+                    if (rule.recheck > 0) {
                         rule.enabled = false
-                        log.debug "runIn"
                         runIn(rule.recheck*60, recheckHandler, [overwrite: false, data: [subscriptionKey, ruleId]])
                     }
                 }            
@@ -124,7 +122,7 @@ def eventHandler(event) {
         }
     }
     else {
-        log.debug "usubscribe ${event.device.displayName} ${event.name}"
+        log.debug "unsubscribe ${event.device.displayName} ${event.name}"
         unsubscribe(event.device, event.name)        
     }        
 }    
@@ -137,9 +135,8 @@ def findRule(subscriptionId, ruleId) {
     return null
 }
 
-void appButtonHandler(btn) {
-    log.debug "Button pushed - ${btn}"   
-    if (btn == "create") { 
+@groovy.transform.Synchronized("asyncLock")
+def createRule() {
         def newRuleData = [
             name: name,
             parameterType: parameterType,
@@ -172,25 +169,36 @@ void appButtonHandler(btn) {
             subscribe(newRuleData.device, newRuleData.parameterType, eventHandler, ["filterEvents": false])            
         }
         
-        state.subscriptions[subscriptionKey][ruleId] = newRuleData    
-    }
-    else if (btn.startsWith(deleteRulePrefix)) {
-        def substrings = btn.tokenize("_");
-        def subscriptionKey = substrings[1]
-        def ruleId = substrings[2]
-        def rule = findRule(subscriptionKey, ruleId)
-        if (rule) {            
-            def subscription = state.subscriptions[subscriptionKey]
-            if (subscription) {
-                def sr = subscription[ruleId]
-                if (sr) {
-                    subscription.remove(ruleId)
-                    if (subscription.size() == 0) {
-                        state.subscriptions.remove(subscriptionKey)
-                    }                    
-                }
+        state.subscriptions[subscriptionKey][ruleId] = newRuleData        
+}
+
+@groovy.transform.Synchronized("asyncLock")
+def deleteRule(btnName) {
+    def substrings = btnName.tokenize("_");
+    def subscriptionKey = substrings[1]
+    def ruleId = substrings[2]
+    def rule = findRule(subscriptionKey, ruleId)
+    if (rule) {            
+        def subscription = state.subscriptions[subscriptionKey]
+        if (subscription) {
+            def sr = subscription[ruleId]
+            if (sr) {
+                subscription.remove(ruleId)
+                if (subscription.size() == 0) {
+                    state.subscriptions.remove(subscriptionKey)
+                }                    
             }
         }
+    }    
+}
+
+void appButtonHandler(btn) {
+    log.debug "Button pushed - ${btn}"   
+    if (btn == "create") { 
+        createRule()
+    }
+    else if (btn.startsWith(deleteRulePrefix)) {
+        deleteRule(btn)
     }        
 }
 
