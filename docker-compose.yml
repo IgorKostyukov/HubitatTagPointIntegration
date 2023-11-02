@@ -1,0 +1,46 @@
+version: "3.5"
+
+networks:
+  net:
+
+services:
+  vm:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: vm
+    hostname: vm
+    restart: always
+    stop_grace_period: 5m
+    networks:
+     - net
+    ports:
+      - 8428:8428/tcp
+    volumes:
+      - ./data/vm:/data
+    command:
+      - "-storageDataPath=/data"
+      - "-loggerLevel=INFO"
+      - "-loggerFormat=default"
+      - "-httpListenAddr=:8428"
+      - "-retentionPeriod=2y"
+      - "-influxSkipSingleField"
+      - "-selfScrapeInterval=30s"
+      - "-inmemoryDataFlushInterval=15s"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    hostname: grafana
+    restart: always
+    ports:
+      - 3000:3000  
+    networks:
+     - net
+    volumes:
+      - ./grafana_data:/var/lib/grafana  
+    environment:
+      - GF_INSTALL_PLUGINS=flant-statusmap-panel
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - vm
