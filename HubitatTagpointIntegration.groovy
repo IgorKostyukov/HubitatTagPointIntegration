@@ -103,7 +103,7 @@ def selectDevicePage() {
                   }
               }              
 
-              input "recheck", "number", title: "Recheck", required: true, submitOnChange: false
+              input "recheck", "number", title: "Recheck interval in minutes", required: true, submitOnChange: false
 
               input "url", "text", title: "URL", required: true, submitOnChange: false
           }          
