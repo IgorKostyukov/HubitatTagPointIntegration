@@ -6,7 +6,6 @@ import groovy.transform.Field
 @Field gtcomp = "greater than"
 @Field ltcomp = "less than"
 
-
 definition(
     name: "TagpointAlerts",
     namespace: "waveaccess",
@@ -18,7 +17,18 @@ definition(
 
 
 preferences {
-    page(name: "mainPage", title: "Main Page", install: true, uninstall: true) {
+    page(name: "mainPage", title: "Main Page", install: true, uninstall: false)    
+    page(name: "addRulePage", title: "Add new rule", nextPage: "selectDevicePage", install: false, uninstall: false)
+    page(name: "selectDevicePage", title: "Select device", nextPage	: "mainPage", install: false, uninstall: false)
+}
+
+def mainPage() {
+    if (state.onSelectDevicePage == true) {
+        createRule()
+    }    
+    state.onSelectDevicePage = false
+    
+    return dynamicPage(name: "mainPage") {
         section() {
             input "authHeader", "text", title: "Auth Header", multiple: false, required: true, submitOnChange: true    
             href name: "myHref", "button", page: "addRulePage", title: "Add new Rule"
@@ -33,9 +43,14 @@ preferences {
                     rulesText += "Name: ${ruleData.name}\n"
                     rulesText += "Parameter Type: ${ruleData.parameterType}\n"
                     rulesText += "Device: ${ruleData.device.displayName}\n"
-                    rulesText += "Comparison: ${ruleData.comparison}\n"
-                    rulesText += "Value: ${ruleData.value}\n"
-                    rulesText += "URL: ${ruleData.url}\n"                                
+                    if (ruleData.dataType == "NUMBER") {
+                        rulesText += "Comparison: ${ruleData.comparison}\n"
+                        rulesText += "Value: ${ruleData.value}\n"                        
+                    }
+                    else if (ruleData.dataType == "ENUM") {
+                        rulesText += "Acceptable values: ${ruleData.values}\n"                        
+                    }
+                    rulesText += "URL: ${ruleData.url}\n" 
                     paragraph(rulesText)                
                     input "${deleteRulePrefix}_${subscriptionId}_${ruleId}", "button", title: "Delete"
                     paragraph("-------------------\n")                    
@@ -43,37 +58,56 @@ preferences {
             }
         }
     }
-    
-       
-    page(name: "addRulePage", title: "Add new rule", install: false, uninstall: true) {
-      dynamicPage(name: "addRulePage") {
+}
+
+
+def addRulePage() {
+    app.removeSetting("device")
+    return dynamicPage(name: "addRulePage") {
           section("") {
-              input "name", "text", title: "Name", multiple: false, required: true, submitOnChange: true    
-              if (name) {
-                  input "parameterType", "enum", title: "Parameter Type", options: ["temperature", "motion", "humidity"], submitOnChange: true   
-              }             
-              if (parameterType) {
-                  input "device", getCapability(parameterType), title: "Device", multiple: false, required: true, submitOnChange: true    
-              }                                       
-              
-              if (device) {
-                  input "comparison", "enum", title: "Comparison", options: [gtcomp, ltcomp], submitOnChange: true
-              }
-              if (comparison) {
-                    input "value", "decimal", title: "Value", required: true, submitOnChange: true
-              }            
-              if (value != null) {
-                    input "recheck", "number", title: "Recheck", required: true, submitOnChange: true
-              }            
-              if (recheck  != null) {
-                  input "url", "text", title: "URL", required: true, submitOnChange: true
-              }              
-              if (url) {
-                  input "create", "button", title: "Add"
-              }              
+              input "name", "text", title: "Name", multiple: false, required: true, submitOnChange: true, action: "test"
+
+              input "parameterType", "enum", title: "Parameter Type", options: ["temperature", "smoke", "humidity"], submitOnChange: false                 
           }          
      }
-   } 
+}
+
+def selectDevicePage() {
+    state.onSelectDevicePage = true
+    if (device != null) {
+        def attr = device.getSupportedAttributes().find({a -> a.name == parameterType})
+        if (attr) {
+            state.attr = attr
+        }
+        else {
+            state.onSelectDevicePage = false
+            throw new Exception("Attribute ${parameterType} didn't find in device ${device.getDisplayName()}")
+        }
+    }
+    
+    return dynamicPage(name: "selectDevicePage") {
+          section("") {              
+              input "device", getCapability(parameterType), title: "Device", multiple: false, required: true, submitOnChange: true
+              
+              if (device != null) {
+                  if (state.attr.dataType == "NUMBER") {
+                      input "comparison", "enum", title: "Comparison", options: [gtcomp, ltcomp], submitOnChange: false
+
+                      input "value", "decimal", title: "Value", required: true, submitOnChange: false    
+                  } 
+                  else if (state.attr.dataType == "ENUM") {                  
+                      input "acceptableValues", "enum", title: "Acceptable values", options: state.attr.possibleValues, multiple: true, required: true, submitOnChange: false    
+                  }
+                  else {
+                      throw new Exception("Attribute dataType ${state.attr.dataType} isn't supported")
+                  }
+              }              
+
+              input "recheck", "number", title: "Recheck", required: true, submitOnChange: false
+
+              input "url", "text", title: "URL", required: true, submitOnChange: false
+          }          
+     }
 }
 
 def createSubscriptionKey(device, parameterType) {
@@ -97,9 +131,9 @@ def eventHandler(event) {
     def subscription = state.subscriptions[subscriptionKey]
     if (subscription) {     
         subscription.each { ruleId, rule ->
-            if (rule.enabled) {
-                if ((rule.comparison == gtcomp && event.getDoubleValue() > rule.value) || (rule.comparison == ltcomp && event.getDoubleValue() < rule.value)) {
-                    log.debug "post"                    
+            if (rule.enabled) {               
+                if ((rule.dataType == "NUMBER" && ((rule.comparison == gtcomp && event.getDoubleValue() > rule.value) || (rule.comparison == ltcomp && event.getDoubleValue() < rule.value))) ||
+                (rule.dataType == "ENUM" && !rule.values.contains(event.value))) {
                     Map postParams = [
                         uri: rule.url,
                         requestContentType: 'application/json',
@@ -108,13 +142,15 @@ def eventHandler(event) {
                         body : new groovy.json.JsonOutput().toJson( [ value: event.value ])
                     ]   
                    
+                    log.debug postParams
+                    
                     asynchttpPost(handlePostResponse, postParams)                    
                     
                     if (rule.recheck > 0) {
                         rule.enabled = false
                         runIn(rule.recheck*60, recheckHandler, [overwrite: false, data: [subscriptionKey, ruleId]])
-                    }
-                }            
+                    }                    
+                }
             }
             else {
                 log.debug "rule is disabled"
@@ -136,40 +172,50 @@ def findRule(subscriptionId, ruleId) {
 }
 
 @groovy.transform.Synchronized("asyncLock")
-def createRule() {
-        def newRuleData = [
-            name: name,
-            parameterType: parameterType,
-            device: device,
-            comparison: comparison,
-            value: value,
-            recheck: recheck,
-            url: url,
-            enabled: true
-        ]        
-       
-        def ruleId = new Date().time.toString()
+def createRule() { 
+    def newRuleData = [
+        name: name,
+        parameterType: parameterType,
+        device: device,
+        recheck: recheck,
+        url: url,
+        enabled: true,
+        dataType: state.attr.dataType
+    ]        
+
+    if (state.attr.dataType == "NUMBER") {
+        newRuleData["comparison"] = comparison
+        newRuleData["value"] = value
+    }
+    else if (state.attr.dataType == "ENUM") {
+        newRuleData["values"] = acceptableValues
+    }
+    else {
+        throw new Exception("Cannot create rule")
+    }
+    
+    def ruleId = new Date().time.toString()
         
-        if (!state.subscriptions) {
-            state.subscriptions = [:]
-        }
+    if (!state.subscriptions) {
+        state.subscriptions = [:]
+    }
         
-        def subscriptionKey = createSubscriptionKey(newRuleData.device, newRuleData.parameterType)
+    def subscriptionKey = createSubscriptionKey(newRuleData.device, newRuleData.parameterType)
                 
-        if (!state.subscriptions) {
-            state.subscriptions = [:]
-        }
+    if (!state.subscriptions) {
+        state.subscriptions = [:]
+    }
         
-        if (!state.subscriptions[subscriptionKey]) {
-            state.subscriptions[subscriptionKey] = [:]            
-        }        
+    if (!state.subscriptions[subscriptionKey]) {
+        state.subscriptions[subscriptionKey] = [:]            
+    }        
         
-        if (state.subscriptions[subscriptionKey].isEmpty()) {
-            log.debug "subscribe - ${subscriptionKey}"
-            subscribe(newRuleData.device, newRuleData.parameterType, eventHandler, ["filterEvents": false])            
-        }
+    if (state.subscriptions[subscriptionKey].isEmpty()) {
+        log.debug "subscribe - ${subscriptionKey}"
+        subscribe(newRuleData.device, newRuleData.parameterType, eventHandler, ["filterEvents": false])            
+    }
         
-        state.subscriptions[subscriptionKey][ruleId] = newRuleData        
+    state.subscriptions[subscriptionKey][ruleId] = newRuleData        
 }
 
 @groovy.transform.Synchronized("asyncLock")
@@ -194,12 +240,9 @@ def deleteRule(btnName) {
 
 void appButtonHandler(btn) {
     log.debug "Button pushed - ${btn}"   
-    if (btn == "create") { 
-        createRule()
-    }
-    else if (btn.startsWith(deleteRulePrefix)) {
+     if (btn.startsWith(deleteRulePrefix)) {
         deleteRule(btn)
-    }        
+    }       
 }
 
 def getCapability(parameterType) {
@@ -209,8 +252,8 @@ def getCapability(parameterType) {
     else if (parameterType == "humidity") {
         return "capability.relativeHumidityMeasurement"
     }
-    else if (parameterType == "motion") {
-        return "capability.motionSensor"
+    else if (parameterType == "smoke") {
+        return "capability.smokeDetector"
     }
     else {
         return ""   
@@ -219,11 +262,12 @@ def getCapability(parameterType) {
 
 def installed() {
     log.debug "installed"    
-    updated()
+    state.onSelectDevicePage = false
 }
 
 def updated() {
     log.debug "updated"    
+    state.onSelectDevicePage = false
 }
 
 def uninstalled() {
