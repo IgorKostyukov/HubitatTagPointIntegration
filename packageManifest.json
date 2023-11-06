@@ -1,0 +1,18 @@
+{
+  "packageName": "TagpointIntegration",
+  "author": "Igor Kostyukov",
+  "version": "1.0.0",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2022-07-11",
+  "apps": [
+    {
+      "id": "30ff6fba-0743-42c4-8019-11283d5caaa0",
+      "name": "TagpointAlerts",
+      "namespace": "waveaccess",
+      "location": "https://raw.githubusercontent.com/IgorKostyukov/HubitatTagPointIntegration/master/HubitatTagpointIntegration.groovy",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}
