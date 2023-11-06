@@ -67,7 +67,7 @@ def addRulePage() {
           section("") {
               input "name", "text", title: "Name", multiple: false, required: true, submitOnChange: true, action: "test"
 
-              input "parameterType", "enum", title: "Parameter Type", options: ["temperature", "smoke", "humidity"], submitOnChange: false                 
+              input "parameterType", "enum", title: "Parameter Type", options: ["temperature", "smoke", "humidity", "carbonDioxide"], submitOnChange: false                 
           }          
      }
 }
@@ -255,6 +255,9 @@ def getCapability(parameterType) {
     else if (parameterType == "smoke") {
         return "capability.smokeDetector"
     }
+    else if (parameterType == "carbonDioxide") {
+        return "capability.carbonDioxideMeasurement"
+    }    
     else {
         return ""   
     }
