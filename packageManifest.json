@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "minimumHEVersion": "0.0",
   "dateReleased": "2022-07-11",
-  "tags": "tagpoint"
+  "tags": "tagpoint",
   "apps": [
     {
       "id": "30ff6fba-0743-42c4-8019-11283d5caaa0",
