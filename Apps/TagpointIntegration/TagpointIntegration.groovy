@@ -65,9 +65,9 @@ def addRulePage() {
     app.removeSetting("device")
     return dynamicPage(name: "addRulePage") {
           section("") {
-              input "name", "text", title: "Name", multiple: false, required: true, submitOnChange: true, action: "test"
+              input "name", "text", title: "Name", multiple: false, required: true, submitOnChange: true
 
-              input "parameterType", "enum", title: "Parameter Type", options: ["temperature", "smoke", "humidity", "carbonDioxide"], submitOnChange: false                 
+              input "parameterType", "enum", title: "Parameter Type", options: ["temperature", "smoke", "humidity", "carbonDioxide"], required: true, submitOnChange: false                 
           }          
      }
 }
