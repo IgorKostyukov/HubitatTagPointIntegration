@@ -27,10 +27,10 @@ import groovy.transform.Field
 @Field static TreeMap stats = [_totalSends: 0, _totalSendTime: 0, _maxSendTime: 0, _totalEvents: 0, _sumQueueSize: 0, _maxQueueSize: 0]
 
 definition(
-  name: "MetricLogger",
+  name: "VictoriaMetricsLogger",
   namespace: "syepes",
   author: "Sebastian YEPES",
-  description: "Metric Logger",
+  description: "VictoriaMetrics Logger",
   category: "",
   oauth: false,
   singleInstance: true,
