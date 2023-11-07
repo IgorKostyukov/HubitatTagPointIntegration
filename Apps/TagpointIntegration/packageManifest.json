@@ -10,7 +10,7 @@
       "id": "30ff6fba-0743-42c4-8019-11283d5caaa0",
       "name": "TagpointAlerts",
       "namespace": "waveaccess",
-      "location": "https://raw.githubusercontent.com/IgorKostyukov/HubitatTagPointIntegration/main/HubitatTagpointIntegration.groovy",
+      "location": "https://raw.githubusercontent.com/IgorKostyukov/HubitatTagPointIntegration/main//Apps/TagpointIntegration/TagpointIntegration.groovy",
       "required": true,
       "oauth": false,
       "primary": false
