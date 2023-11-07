@@ -7,7 +7,7 @@ import groovy.transform.Field
 @Field ltcomp = "less than"
 
 definition(
-    name: "TagpointAlerts",
+    name: "TagpointIntegration",
     namespace: "waveaccess",
     author: "IgorKostyukov",
     description: "",
