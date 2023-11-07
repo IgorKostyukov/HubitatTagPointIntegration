@@ -258,6 +258,7 @@ def handleEvent(evt) {
     def hub_id = escapeCharacters(hub?.id)
     def hub_name = escapeCharacters(hub?.name)
     def hub_ip = escapeCharacters(hub?.localIP)
+    def room_name = escapeCharacters(evt?.device.roomName)
 
     if (deviceDetails.toInteger()) {
       if(deviceData?.size() == 0) {
@@ -283,7 +284,7 @@ def handleEvent(evt) {
 
     def value = escapeCharacters(evt.value)
 
-    String data = "${metric},hub_name=${hub_name},hub_ip=${hub_ip},device_id=${device_id},device_name=${device_name}"
+    String data = "${metric},hub_name=${hub_name},hub_ip=${hub_ip},device_id=${device_id},device_name=${device_name},room_name=${room_name}"
 
     // String-valued attributes can be translated to Numbers
     if ('acceleration' == evt.name) { // acceleration: active = 1, inactive = 0
