@@ -4,14 +4,13 @@
   "version": "1.0.0",
   "minimumHEVersion": "2.2.3",
   "dateReleased": "2023-11-07",
-  "licenseFile": "https://github.com/syepes/Hubitat#license",
   "apps": [
     {
       "id": "a85ea52d-9276-47f4-98a5-71bafb19fe49",
       "name": "VictoriaMetricsLogger",
       "namespace": "syepes",
       "location": "https://raw.githubusercontent.com/IgorKostyukov/HubitatTagPointIntegration/main/Apps/VictoriaMetricsLogger/VictoriaMetricsLogger.groovy",
-      "required": false,
+      "required": true,
       "oauth": false,
       "primary": false
     }
