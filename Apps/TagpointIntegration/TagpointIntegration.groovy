@@ -91,7 +91,7 @@ def selectDevicePage() {
               
               if (device != null) {
                   if (state.attr.dataType == "NUMBER") {
-                      input "comparison", "enum", title: "Comparison", options: [gtcomp, ltcomp], submitOnChange: false
+                      input "comparison", "enum", title: "Comparison", required: true, options: [gtcomp, ltcomp], submitOnChange: false
 
                       input "value", "decimal", title: "Value", required: true, submitOnChange: false    
                   } 
