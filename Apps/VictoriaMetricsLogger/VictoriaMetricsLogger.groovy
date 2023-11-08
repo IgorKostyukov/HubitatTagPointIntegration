@@ -46,9 +46,9 @@ preferences {
 
     section("General") {
       input name: "logLevel", title: "Log Level", type: "enum", options: LOG_LEVELS, defaultValue: DEFAULT_LOG_LEVEL, required: false
-      input name: "deviceDetails", title: "Device Details", description: "Collects additional device details (Additional authentication is required if the Hub Login Security is Enabled)", type: "enum", options:[[0:"Disabled"], [1:"Enabled"]], defaultValue: 1, required: true
-      input name: "he_usr", title: "HE User", type: "text", description: "Only if Hub Login Security is Enabled", defaultValue: "", required: false
-      input name: "he_pwd", title: "HE Password", type: "password", description: "Only if Hub Login Security is Enabled", defaultValue: "", required: false
+      // input name: "deviceDetails", title: "Device Details", description: "Collects additional device details (Additional authentication is required if the Hub Login Security is Enabled)", type: "enum", options:[[0:"Disabled"], [1:"Enabled"]], defaultValue: 1, required: true
+      // input name: "he_usr", title: "HE User", type: "text", description: "Only if Hub Login Security is Enabled", defaultValue: "", required: false
+      // input name: "he_pwd", title: "HE Password", type: "password", description: "Only if Hub Login Security is Enabled", defaultValue: "", required: false
     }
 
     section ("Destination") {
@@ -230,7 +230,7 @@ def updated() {
   state.deviceAttributes << [ devices: 'pHMeasurement', attributes: ['pH']]
 
   // get device inventory
-  if (deviceDetails.toInteger()) { deviceInventory() }
+  // if (deviceDetails.toInteger()) { deviceInventory() }
 
   // Configure Scheduling:
   manageSchedules()
@@ -239,7 +239,7 @@ def updated() {
   manageSubscriptions()
 
   // schedule("0 0 12 */7 * ?", updateCheck)
-  if (deviceDetails.toInteger()) { schedule("0 0 * ? * *", deviceInventory) }
+  // (deviceDetails.toInteger()) { schedule("0 0 * ? * *", deviceInventory) }
 }
 
 def handleEvent(evt) {
@@ -260,6 +260,7 @@ def handleEvent(evt) {
     def hub_ip = escapeCharacters(hub?.localIP)
     def room_name = escapeCharacters(evt?.device.roomName)
 
+    /*
     if (deviceDetails.toInteger()) {
       if(deviceData?.size() == 0) {
         deviceInventory()
@@ -280,7 +281,7 @@ def handleEvent(evt) {
       } else {
         logger("warn", "handleEvent() - Device not found in the inventory device_id:${device_id}, device_name:${evt?.name}, device_label:${evt?.displayName}")
       }
-    }
+    }*/
 
     def value = escapeCharacters(evt.value)
 
@@ -552,7 +553,7 @@ private escapeCharacters(str) {
   return str
 }
 
-
+/*
 private void loginHE() {
   if (state.authToken != "") { return }
 
@@ -609,7 +610,7 @@ void deviceInventory() {
     if (he_usr != "" && he_pwd != "") { state.authToken = '' }
     logger("error", "deviceInventory() - Error: ${e}")
   }
-}
+}*/
 
 /**
  * @param level Level to log at, see LOG_LEVELS for options
