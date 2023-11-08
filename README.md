@@ -51,8 +51,7 @@ If you don't have Hubitat Package Manager (HPM) installed yet, please install it
 
 # VictoriaMetricsLogger app
 
-1. Install the app using HPM.
-   
+1. Install the app using HPM.   
 You can install the VictoriaMetricsLogger app using HPM (Hubitat Package Manager). The installation process is very similar to the TagPointIntegration app, with just one difference. When installing VictoriaMetricsLogger, use the following URL for the manifest file: https://raw.githubusercontent.com/IgorKostyukov/HubitatTagPointIntegration/main/Apps/VictoriaMetricsLogger/packageManifest.json
 1. Manual app update.
    
